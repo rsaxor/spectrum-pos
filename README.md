@@ -1,6 +1,7 @@
-# Spectrum Retail Sales Microservice Portal
-
-This is a full-stack Next.js web application designed to function as a microservice portal. Its primary purpose is to collect daily sales data from multiple retailers (via CSV upload or manual form input) and securely submit it to an external REST API. It also saves a copy of all successful transactions to a private Firebase Firestore database for internal viewing, searching, sorting, and exporting.
+# Spectrum Retail Sales Microservice Portal <br>(A full-stsack Next.js web application)
+- **In accordance to Dubai International Financial Center (DIFC) compliance requirements for retail-type store**
+- Its primary purpose is to collect daily sales data from multiple retailers (via CSV upload or manual form input) and securely submit it to an external REST API.
+- It also saves a copy of all successful transactions to a private Firebase Firestore database for internal viewing, searching, sorting, and exporting.
 
 ## Features
 
