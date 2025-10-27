@@ -8,14 +8,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-// Import FileDown icon
 import {
   Home,
-  UploadCloud as Upload, // Keep alias if used elsewhere, or just use UploadCloud
+  UploadCloud as Upload,
   Keyboard,
   Database,
   PanelLeft,
-  FileDown // Added import
+  FileDown,
+  ClipboardPaste
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -24,8 +24,9 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 // Define navigation items array
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
-  { href: "/csv-upload", label: "CSV Upload", icon: Upload },
+  { href: "/paste-input", label: "Sheet", icon: ClipboardPaste },
   { href: "/manual-input", label: "Manual Input", icon: Keyboard },
+  { href: "/csv-upload", label: "CSV Upload", icon: Upload },
   { href: "/view-data", label: "Data Collection", icon: Database },
   { href: "/export-data", label: "Export Data", icon: FileDown },
 ];

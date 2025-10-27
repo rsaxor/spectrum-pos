@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 // Import FileDown icon
-import { UploadCloud, Keyboard, Database, FileDown, Loader2 } from "lucide-react";
+import { UploadCloud, Keyboard, Database, FileDown, Loader2, ClipboardPaste } from "lucide-react";
 import { useAuth } from "@/context/auth-provider";
 
 export default function DashboardHomePage() {
@@ -30,6 +30,17 @@ export default function DashboardHomePage() {
 
       {/* Feature Shortcut Buttons */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Link href="/paste-input">
+          <Card className="h-full transform transition-all hover:-translate-y-1 hover:border-primary hover:bg-accent">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <ClipboardPaste className="mb-4 h-12 w-12 text-primary" />
+              <h2 className="text-lg font-semibold">Sheet</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Manually enter rows or paste data directly from Excel/Google Sheets.
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
         <Link href="/csv-upload">
           <Card className="h-full transform transition-all hover:-translate-y-1 hover:border-primary hover:bg-accent">
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
