@@ -1,0 +1,4 @@
+ReceiptDate,ReceiptNo,ShiftDay,Tax,Total,Type,Gross,SaleChannel
+"20 Oct 2025 09:30 AM","input_invoice_number","20 Oct 2025 10:00 AM",30.00,130.00,0,100.00,"Store-sales"
+"20 Oct 2025 03:30 PM","input_invoice_number","20 Oct 2025 10:00 AM",9.00,59.00,0,50.00,"Store-sales"
+"20 Oct 2025 09:15 PM","input_invoice_number","20 Oct 2025 10:00 AM",2.00,22.00,1,20.00,"Store-sales"

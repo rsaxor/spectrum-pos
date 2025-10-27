@@ -1,0 +1,171 @@
+i am building a microservice using next, shadCN, firebase, turnstile cloudflare. then it has 4 features:
+ 
+#1 It needs to have a login authentication also adding turnstile
+
+#2 uploading csv and use REST WCF Web Service /JSON /POST
+ENV file:
+
+Test credentials in env:
+Username:RT-000002
+Password:-@>3+72oZ8umrp
+
+Mall: Gate District
+Retailer: House of Spectrum
+Brand: House of Spectrum
+Unit: GD-PB-04-B1-RT-04-0
+
+REST Link : https://epos.difc.ae/eTenantServices/PushDailySalesRESTService.svc/PushReceiptsBatch
+
+I need an upload button that allows a .CSV upload based from the API requirements below, please also provide a .csv template with correct column heading based from the api requirements.
+
+REST API REQUIREMENTS
+
+Basic authentication should contains base 64 encoded string for provided “username:password” to
+authorize the request successfully, example for valid authorization header:
+Authorization: Basic VXNlcjE6eHl6 
+
+Input: 
+The API request body should contain JSON object with the following attributes: 
+Attribute: PushReceiptShifts
+Type: string
+Is Required: Yes
+Description: List of JSON objects
+
+Each JSON object in PushReceiptShifts list includes the following attributes:
+
+Attribute:
+Attribute, type, is required, Description
+Mall, string, Yes, Asset/Property name.
+Retailer, string, Yes, Retailer name.
+Brand, string, Yes, Brand name.
+Unit, string, Yes, Unit, Identifier/Number.
+ShiftDay, string, Yes, Shift day (Microsoft Date Format).
+PushReceipts, string, Yes, List of receipts for the daily shift as list of JSON objects.
+
+Each JSON object in PushReceipts list includes the following attributes, which will be field coming from our internal transactions data
+
+Attribute, type, is required, Description
+Id, string, Yes, Unique Guid receipt identifier 
+ReceiptDate, string, Yes, Receipt date/time (Microsoft Date Format).
+ReceiptNo, string, Yes, Receipt number.
+Tax, decimal, No, Receipt added tax value.
+Total, decimal, Yes, Receipt total sales value.
+Type, int, Yes, Type Values (0: Receipt, 1: issued returns)
+Gross, decimal, No, Receipt gross sales value.
+SaleChannel, string, No, any text we can input
+
+For the REST OUTPUT:
+
+ResultCode:
+
+Return value, description
+200, Succeeded
+300, Invalid Username or Password
+400, Failed
+500, Partial Failure
+
+ReturnMessage: If return code is not 200 (succeeded), error message will contain failure reason/description. 
+
+PushShiftReturnResult object return
+
+Attribute, Type, Is Required, Description
+Mall, string, Yes, Asset/Property name.
+Retailer, string, Yes, Retailer name.
+Brand, string, Yes, Brand name.
+Unit, string, Yes, Unit Identifier/Number.
+ShiftDay, DateTime, Yes, Shift day of the pushed sales.
+ReturnCode, string, Yes, Possible values with description: {
+    200: Succeeded
+    600: Access Denied
+    701: Invalid Retailer Info
+    702: Invalid Date
+    703: Invalid Total Sales
+    704: No POS Found
+    705: POS is not licensed
+    706: Invalid Sale Channel
+}
+ErrorMessage, string, Yes, If return code is not 200, error message will contain failure reason/description.
+
+#3 POS manual input
+
+Goal of this feature is to have input fields representing:
+
+Attribute, type, is required, Description
+Id, string, Yes, Unique Guid receipt identifier 
+ReceiptDate, string, Yes, Receipt date/time (Microsoft Date Format).
+ReceiptNo, string, Yes, Receipt number.
+Tax, decimal, No, Receipt added tax value.
+Total, decimal, Yes, Receipt total sales value.
+Type, int, Yes, Type Values (0: Receipt, 1: issued returns)
+Gross, decimal, No, Receipt gross sales value.
+SaleChannel, string, No, any text we can input
+
+Then hitting submit sends it to the REST link. Also it will return the same REST OUTPUT from #2
+
+#4 Collection/storage feature
+
+All posted data from #2 and #3 must be save in the firebase database, same database columns from the API requirements
+
+Attribute, type, is required, Description
+Id, string, Yes, Unique Guid receipt identifier 
+ReceiptDate, string, Yes, Receipt date/time (Microsoft Date Format).
+ReceiptNo, string, Yes, Receipt number.
+Tax, decimal, No, Receipt added tax value.
+Total, decimal, Yes, Receipt total sales value.
+Type, int, Yes, Type Values (0: Receipt, 1: issued returns)
+Gross, decimal, No, Receipt gross sales value.
+SaleChannel, string, No, any text we can input
+
+so if #2 feature is used > CSV is uploaded, all rows should be added.
+if #3 feature is used > POS manual input, submitting the fields should update the database
+
+It needs a robust search feature (search input should be used for searching across all columns and return the matched row)
+It needs a sort feature for columns
+
+Approach I want to do is step by step. #1, then #2, etc. 
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+SAMPLE REQUEST
+{
+    "PushReceiptShifts": [{
+        "Mall": "Property-01",
+        "Retailer": "Retailer Name",
+        "Brand": "Brand Name",
+        "Unit": "Unit-01",
+        "ShiftDay": "\/Date(1722459600000+0300)\/",
+        "PushReceipts": [{
+                "Gross": 101.4,
+                "Id": "0edd29cc-fe7d-4879-afa6-4490f812d033",
+                "ReceiptDate": "\/Date(1722508220000+0300)\/",
+                "ReceiptNo": "R-0001",
+                "Tax": 11.4,
+                "Total": 90.0,
+                "Type": 0,
+                "SaleChannel": "Dine-In"
+            },
+            {
+                "Gross": 93.65,
+                "Id": "53829bdd-05e5-4368-93dd-485a8f611412",
+                "ReceiptDate": "\/Date(1722513019000+0300)\/",
+                "ReceiptNo": "R-0002",
+                "Tax": 8.0,
+                "Total": 85.65,
+                "Type": 0,
+                "SaleChannel": "Takeaway"
+            }
+        ]
+    }]
+}
+
+
+
+asus n551jx
+16gb ram
+intel core TM i7-4750hq @2ghz processor
+nvidia geforce gtx 950m 4gb graphics card
+254 gb storage
+64 bit OS
+Windows 10 lOT Enterprise LTSC version 21H2 OS build 19044.6456
