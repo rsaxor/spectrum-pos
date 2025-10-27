@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { admin } from "@/lib/firebase-admin";
 import { FieldValue, DocumentReference } from "firebase-admin/firestore";
+
+export const runtime = "nodejs";
+
 // Declare __app_id globally for TypeScript
 declare global {
   var __app_id: string | undefined;
@@ -61,9 +64,6 @@ const getRetailerConfigs = (): RetailerConfig[] => {
         throw new Error(`Server Configuration Error: Failed to parse RETAILERS_CONFIG JSON. ${message}`)
     }
 };
-
-// --- API Route Handler ---
-export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {

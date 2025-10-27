@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { admin } from "@/lib/firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 
+export const runtime = "nodejs";
+
 // Declare __app_id globally for TypeScript
 declare global {
   var __app_id: string | undefined;
@@ -22,8 +24,6 @@ type ReceiptClientData = Omit<ReceiptFirestoreData, 'createdAt'> & {
     id: string; // Include document ID
     createdAt: string; // Convert Timestamp to ISO string
 };
-
-export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   console.log("[API /get-receipts] GET request received.");
