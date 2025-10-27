@@ -8,6 +8,12 @@
 ### Multi-Retailer Support 
 - dynamically handles multiple retailers with a single API.
 
+### Spreadsheet:
+
+- Parse copied data from spreadsheet then process it as field rows
+
+- multi-row cell editing
+
 ### CSV Upload:
 
 - A dedicated page for uploading .csv files of POS sales
