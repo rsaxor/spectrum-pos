@@ -41,14 +41,20 @@ import {
 } from "@/components/ui/select"
 import { ChevronDown, X as XIcon } from "lucide-react"
 
-// ✅ Fuzzy filter with safe typing
+// --- Constants ---
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+]
+
+// --- Fuzzy filter helper ---
 export const fuzzyFilter: FilterFn<unknown> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(String(row.getValue(columnId)), value)
   addMeta?.({ itemRank })
   return itemRank.passed
 }
 
-// ✅ Safe client-side MS date parser
+// --- MS Date parser helper ---
 const parseClientMsDateString = (msDateString?: string | null): Date | null => {
   if (!msDateString) return null
   const match = msDateString.match(/\/Date\((\d+)(?:[+-]\d+)?\)\//)
@@ -60,22 +66,22 @@ const parseClientMsDateString = (msDateString?: string | null): Date | null => {
   return null
 }
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-]
-
-// ✅ DataTable props
+// --- Props Interface ---
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  isLoading?: boolean // Optional loading state for async data
+  error?: string // Optional error message
 }
 
-// ✅ DataTable component
+// --- DataTable Component ---
 export function DataTable<TData extends { receiptDate?: string }, TValue>({
   columns,
   data,
+  isLoading = false,
+  error,
 }: DataTableProps<TData, TValue>) {
+  // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -85,7 +91,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
   const [selectedMonth, setSelectedMonth] = React.useState<string>("")
   const [selectedYear, setSelectedYear] = React.useState<string>("")
 
-  // ✅ Update column filters when month/year changes
+  // --- Filter logic for month/year ---
   React.useEffect(() => {
     const monthFilterValue = selectedMonth ? parseInt(selectedMonth, 10) : null
     const yearFilterValue = selectedYear ? parseInt(selectedYear, 10) : null
@@ -105,7 +111,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
     setColumnFilters(newFilters)
   }, [selectedMonth, selectedYear])
 
-  // ✅ Compute available years (type-safe)
+  // --- Available years calculation ---
   const availableYears = React.useMemo(() => {
     const years = new Set<number>()
     data.forEach(row => {
@@ -115,7 +121,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
     return Array.from(years).sort((a, b) => b - a)
   }, [data])
 
-  // ✅ Properly typed table
+  // --- Table instance ---
   const table = useReactTable<TData>({
     data,
     columns,
@@ -146,7 +152,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
     setSelectedYear("")
   }
 
-  // ✅ Render
+  // --- Render ---
   return (
     <div className="w-full">
       {/* Filter Row */}
@@ -157,6 +163,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
           value={globalFilter ?? ""}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="max-w-xs h-10"
+          aria-label="Global search"
         />
 
         {/* Month Select */}
@@ -164,7 +171,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
           value={selectedMonth || "all"}
           onValueChange={(value) => setSelectedMonth(value === "all" ? "" : value)}
         >
-          <SelectTrigger className="w-[180px] h-10">
+          <SelectTrigger className="w-[180px] h-10" aria-label="Filter by month">
             <SelectValue placeholder="Filter by Month..." />
           </SelectTrigger>
           <SelectContent>
@@ -182,7 +189,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
           value={selectedYear || "all"}
           onValueChange={(value) => setSelectedYear(value === "all" ? "" : value)}
         >
-          <SelectTrigger className="w-[120px] h-10">
+          <SelectTrigger className="w-[120px] h-10" aria-label="Filter by year">
             <SelectValue placeholder="Filter by Year..." />
           </SelectTrigger>
           <SelectContent>
@@ -202,7 +209,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
         </Select>
 
         {(selectedMonth || selectedYear) && (
-          <Button variant="ghost" onClick={clearDateFilters} className="h-10 px-2 lg:px-3">
+          <Button variant="ghost" onClick={clearDateFilters} className="h-10 px-2 lg:px-3" aria-label="Clear date filters">
             Clear Dates
             <XIcon className="ml-2 h-4 w-4" />
           </Button>
@@ -211,7 +218,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
         {/* Column Visibility */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto h-10">
+            <Button variant="outline" className="ml-auto h-10" aria-label="Show/hide columns">
               Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -234,6 +241,13 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
         </DropdownMenu>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="rounded-md border border-destructive bg-destructive/10 text-destructive px-4 py-3 mb-4" role="alert">
+          <span className="font-medium">Error: </span>{error}
+        </div>
+      )}
+
       {/* Table */}
       <div className="rounded-md border">
         <Table>
@@ -251,25 +265,36 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
             ))}
           </TableHeader>
 
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
+          {/* Loading State */}
+          {isLoading ? (
+            <TableBody>
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results found.
+                  Loading...
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
+            </TableBody>
+          ) : (
+            <TableBody>
+              {table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No results found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          )}
         </Table>
       </div>
 
@@ -284,7 +309,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={!table.getCanPreviousPage() || isLoading}
           >
             Previous
           </Button>
@@ -292,7 +317,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={!table.getCanNextPage() || isLoading}
           >
             Next
           </Button>

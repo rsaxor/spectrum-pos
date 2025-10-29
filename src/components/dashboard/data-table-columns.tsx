@@ -1,203 +1,209 @@
 "use client"
 
-import { ColumnDef, SortingFn } from "@tanstack/react-table" // Import SortingFn type
-import { ArrowUpDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ColumnDef, SortingFn } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-// Helper function (client-side) to parse MS Date string ('/Date(123...)/') into a JS Date object or null
-const parseClientMsDateString = (msDateString: string | undefined | null): Date | null => {
-    if (!msDateString) return null;
-    // Regex to capture the numeric milliseconds part, ignoring potential timezone offset
-    const match = msDateString.match(/\/Date\((\d+)(?:[+-]\d+)?\)\//);
-    if (match && match[1]) {
-        const milliseconds = parseInt(match[1], 10);
-        // Check if parsing resulted in a valid number
-        if (!isNaN(milliseconds)) {
-            return new Date(milliseconds); // Returns local JS Date object based on UTC ms
-        }
-    }
-    // Log warning only if input was not null/undefined but still failed parsing
-    if (msDateString) {
-        console.warn(`Client: Could not parse MS Date string: ${msDateString}`);
-    }
-    return null; // Return null if parsing fails or input is null/undefined
+// --- Helpers ---
+
+// Parse MS Date string (e.g. '/Date(123...)/') to JS Date object or null
+const parseMsDateString = (msDateString?: string | null): Date | null => {
+  if (!msDateString) return null;
+  // Support negative timestamps (dates before 1970)
+  const match = msDateString.match(/\/Date\((-?\d+)(?:[+-]\d+)?\)\//);
+  if (match?.[1]) {
+    const ms = Number(match[1]);
+    if (!isNaN(ms)) return new Date(ms);
+  }
+  console.warn(`Could not parse MS Date string: ${msDateString}`);
+  return null;
 };
 
-
-// Helper function (client-side) to format MS Date string for display in UI
-const formatMsDateString = (msDateString: string | undefined | null): string => {
-    const date = parseClientMsDateString(msDateString); // Use the parser helper
-    if (date) {
-        try {
-            // Format using Intl.DateTimeFormat for locale-awareness and correct timezone display
-            return new Intl.DateTimeFormat('en-US', { // Use desired locale e.g., 'en-GB'
-                year: 'numeric', month: 'short', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', hour12: true, // Use hh:mm a format
-                timeZone: 'Asia/Dubai' // Display date/time in GST timezone
-                }).format(date); // Format the parsed date object
-        } catch (e) {
-            console.error("Error formatting date:", e);
-            return "Invalid Date"; // Fallback for formatting errors
-        }
+// Format MS Date string for display in UI (GST timezone, en-US)
+const formatMsDateString = (msDateString?: string | null): string => {
+  const date = parseMsDateString(msDateString);
+  if (date) {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Dubai",
+      }).format(date);
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return "Invalid Date";
     }
-    // Return appropriate string if parsing failed or input was null/undefined
-    return msDateString ? "Invalid Format" : "N/A";
+  }
+  return msDateString ? "Invalid Format" : "N/A";
 };
 
-// --- Custom Sorting Function for MS Date Strings ---
-// This function parses the date strings and compares their millisecond values
+// Format ISO date string for display in UI (GST timezone)
+const formatIsoDateString = (isoString?: string): string => {
+  if (!isoString) return "N/A";
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return "Invalid Date";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Dubai",
+    }).format(date);
+  } catch (e) {
+    console.error("Error formatting ISO date string:", e);
+    return "Invalid Date";
+  }
+};
+
+// Format currency (AED)
+const formatCurrency = (amount: number | string | null | undefined): string => {
+  const num = typeof amount === "number" ? amount : Number(amount ?? 0);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "AED" }).format(num);
+};
+
+// --- Custom Sorting for MS Date Strings ---
 const msDateSortingFn: SortingFn<Receipt> = (rowA, rowB, columnId) => {
-    // Get the date objects for comparison using the accessor key of the column
-    const dateA = parseClientMsDateString(rowA.getValue(columnId));
-    const dateB = parseClientMsDateString(rowB.getValue(columnId));
-
-    // Handle null/invalid dates during sorting (e.g., put invalid dates at the end)
-    if (dateA === null && dateB === null) return 0; // If both invalid, treat as equal
-    if (dateA === null) return 1; // Put rows with invalid date A after B (sorts B first)
-    if (dateB === null) return -1; // Put rows with invalid date B after A (sorts A first)
-
-    // Compare valid dates by their underlying time value (milliseconds since epoch)
-    return dateA.getTime() - dateB.getTime();
+  const dateA = parseMsDateString(rowA.getValue(columnId));
+  const dateB = parseMsDateString(rowB.getValue(columnId));
+  if (dateA === null && dateB === null) return 0;
+  if (dateA === null) return 1;
+  if (dateB === null) return -1;
+  return dateA.getTime() - dateB.getTime();
 };
-// --- End Custom Sorting Function ---
 
-// Type definition matching data returned by /api/get-receipts API route
-// This defines the structure of each row object expected by the DataTable
+// --- Types ---
 export type Receipt = {
-  id: string; // Firestore document ID added by the API
-  receiptId: string; // UUID generated by backend
-  receiptNo: string; // User-provided receipt/invoice number
-  receiptDate: string; // Stored as MS Date string '/Date(...)/'
-  shiftDay: string;    // Stored as MS Date string '/Date(...)/'
-  total: number;       // Net amount
-  tax: number;         // Tax/VAT amount
-  gross: number | null;// Grand Total (Total + Tax), can be null
-  type: number;        // 0 for Sale, 1 for Return
-  createdAt: string;   // ISO string representation of Firestore Timestamp from API
-}
+  id: string;
+  receiptId: string;
+  receiptNo: string;
+  receiptDate: string;
+  shiftDay: string;
+  total: number;
+  tax: number;
+  gross: number | null;
+  type: number;
+  createdAt: string;
+};
 
-// Define the columns for the DataTable component using TanStack Table's ColumnDef type
+// --- Columns ---
 export const columns: ColumnDef<Receipt>[] = [
-  // Column for Receipt Number
+  // Receipt / Invoice No.
   {
-    accessorKey: "receiptNo", // The key in the Receipt data object
-    // Header definition: Renders a button that toggles sorting for this column
+    accessorKey: "receiptNo",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Receipt / Invoice No. <ArrowUpDown className="ml-2 h-4 w-4" /> {/* Sorting icon */}
+        Receipt / Invoice No. <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-     // Cell definition: Renders the raw value from the data object
-     cell: ({ row }) => <div>{row.getValue("receiptNo")}</div>,
-     // enableSorting: true is the default for accessorKey columns
+    cell: ({ row }) => <div>{row.getValue("receiptNo")}</div>,
   },
-  // Column for Receipt Date
+  // Receipt Date
   {
     accessorKey: "receiptDate",
-     // Header definition: Renders a button that toggles sorting
     header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-            Receipt Date (GST) <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Receipt Date (GST) <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
     ),
-    // Cell definition: Uses the helper function to format the MS Date string
-     cell: ({ row }) => (<div>{formatMsDateString(row.getValue("receiptDate"))}</div>),
-     // Enable sorting for this column
-     enableSorting: true,
-     // Specify our custom sorting function to handle MS Date strings correctly
-     sortingFn: msDateSortingFn,
-     // Keep the existing custom filter function used by the DataTable component for month/year filtering
-     filterFn: (row, columnId, filterValue) => {
-        const dateString = row.getValue(columnId) as string;
-        const date = parseClientMsDateString(dateString); // Parse date string
-        if (!date) return false; // Exclude if date is invalid
-
-        // Expect filterValue to be [monthIndex | null, year | null]
-        const [filterMonth, filterYear] = filterValue as [number | null, number | null];
-
-        // Get month (0-11) and year from the row's date
-        const rowMonth = date.getMonth();
-        const rowYear = date.getFullYear();
-
-        // Check if month matches (or if no month filter is applied)
-        const monthMatch = filterMonth === null || rowMonth === filterMonth;
-        // Check if year matches (or if no year filter is applied)
-        const yearMatch = filterYear === null || rowYear === filterYear;
-
-        // Row passes filter only if both applicable conditions are met
-        return monthMatch && yearMatch;
-     },
+    cell: ({ row }) => <div>{formatMsDateString(row.getValue("receiptDate") as string)}</div>,
+    enableSorting: true,
+    sortingFn: msDateSortingFn,
+    filterFn: (row, columnId, filterValue) => {
+      const dateString = row.getValue(columnId) as string;
+      const date = parseMsDateString(dateString);
+      if (!date) return false;
+      const [filterMonth, filterYear] = filterValue as [number | null, number | null];
+      const rowMonth = date.getMonth();
+      const rowYear = date.getFullYear();
+      const monthMatch = filterMonth === null || rowMonth === filterMonth;
+      const yearMatch = filterYear === null || rowYear === filterYear;
+      return monthMatch && yearMatch;
+    },
   },
-  // Column for Shift Day
+  // Shift Day
   {
     accessorKey: "shiftDay",
-     // Header definition: Renders a button that toggles sorting
-     header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-            Shift Day (GST) <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-     ),
-     // Cell definition: Uses the helper function to format the MS Date string
-     cell: ({ row }) => (<div>{formatMsDateString(row.getValue("shiftDay"))}</div>),
-     // Enable sorting for this column
-     enableSorting: true,
-     // Specify our custom sorting function
-     sortingFn: msDateSortingFn,
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Shift Day (GST) <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => <div>{formatMsDateString(row.getValue("shiftDay") as string)}</div>,
+    enableSorting: true,
+    sortingFn: msDateSortingFn,
   },
-  // Column for Transaction Type
+  // Transaction Type
   {
     accessorKey: "type",
-     // Header definition: Renders a button that toggles sorting
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
         Type <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    // Cell definition: Displays "Sale" or "Return" based on the numeric value
-    cell: ({ row }) => (<div>{row.getValue("type") === 1 ? "Return" : "Sale"}</div>),
-    // enableSorting: true is the default
+    cell: ({ row }) => <div>{row.getValue("type") === 1 ? "Return" : "Sale"}</div>,
   },
-  // Column for Total (Net) Amount
+  // Total (Net)
   {
     accessorKey: "total",
-    // Header definition: Renders a right-aligned button that toggles sorting
-    header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-right w-full justify-end"> Total (Net) <ArrowUpDown className="ml-2 h-4 w-4" /> </Button> ),
-    // Cell definition: Formats the numeric value as currency (AED) and aligns right
-    cell: ({ row }) => { const amount = parseFloat(row.getValue("total")||"0"); const formatted=new Intl.NumberFormat("en-US",{style:"currency",currency:"AED"}).format(amount); return <div className="text-right font-medium">{formatted}</div>; },
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="text-right w-full justify-end"
+      >
+        Total (Net) <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <div className="text-right">{formatCurrency(row.getValue("total"))}</div>
+    ),
   },
-  // Column for Tax (VAT) Amount
+  // Tax (VAT)
   {
     accessorKey: "tax",
-    // Header definition: Renders a right-aligned button that toggles sorting
-    header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-right w-full justify-end"> Tax (VAT) <ArrowUpDown className="ml-2 h-4 w-4" /> </Button> ),
-    // Cell definition: Formats the numeric value as currency (AED) and aligns right
-    cell: ({ row }) => { const amount = parseFloat(row.getValue("tax")||"0"); const formatted=new Intl.NumberFormat("en-US",{style:"currency",currency:"AED"}).format(amount); return <div className="text-right font-medium">{formatted}</div>; },
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="text-right w-full justify-end"
+      >
+        Tax (VAT) <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <div className="text-right">{formatCurrency(row.getValue("tax"))}</div>
+    ),
   },
-  // Column for Gross Total Amount
+  // Gross Total
   {
     accessorKey: "gross",
-    // Header definition: Renders a right-aligned button that toggles sorting
-    header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-right w-full justify-end"> Gross Total <ArrowUpDown className="ml-2 h-4 w-4" /> </Button> ),
-    // Cell definition: Formats the numeric value (handles null) as currency (AED) and aligns right
-    cell: ({ row }) => { const amount = row.getValue("gross") ? parseFloat(row.getValue("gross") as string) : 0; const formatted=new Intl.NumberFormat("en-US",{style:"currency",currency:"AED"}).format(amount); return <div className="text-right font-medium">{formatted}</div>; },
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="text-right w-full justify-end"
+      >
+        Gross Total <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <div className="text-right">{formatCurrency(row.getValue("gross"))}</div>
+    ),
   },
-  // Column for Submission Timestamp
-   {
+  // Submission Timestamp
+  {
     accessorKey: "createdAt",
-    // Header definition: Renders a button that toggles sorting
-    header: ({ column }) => ( <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}> Submitted At <ArrowUpDown className="ml-2 h-4 w-4" /> </Button> ),
-    // Cell definition: Parses the ISO string from API and formats it for display
-    cell: ({ row }) => {
-        const isoString = row.getValue("createdAt") as string | undefined; // Expecting ISO string
-        if (!isoString) return "N/A"; // Handle missing value
-         try {
-             const date = new Date(isoString); // Parse ISO string into JS Date
-             if (isNaN(date.getTime())) return "Invalid Date"; // Check if parsing was successful
-             // Format using GST timezone
-             return <div>{new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Dubai' }).format(date)}</div>;
-         } catch(e) { console.error("Error formatting createdAt ISO string:", e); return "Invalid Date"; } // Catch potential errors
-    },
-    // Enable sorting (sorting by ISO string usually works correctly for timestamps)
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Submitted At <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <div>{formatIsoDateString(row.getValue("createdAt") as string)}</div>
+    ),
     enableSorting: true,
   },
-]
+];

@@ -107,6 +107,7 @@ export default function ManualForm() {
 		fetchRetailers();
 	}, []);
 
+	// --- SET DEFAULT SHIFT DAY AND RECEIPT DATE ---
 	useEffect(() => {
 		const nowInGst = toZonedTime(new Date(), GST_TIMEZONE);
 		const shiftDayDate = new Date(nowInGst);
@@ -122,13 +123,13 @@ export default function ManualForm() {
 	const form = useForm<ManualFormValues>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
-			retailerKey: "", // Initialize retailer key
+			retailerKey: "",
 			ReceiptNo: "",
 			ReceiptDate: undefined,
 			Total: "",
 			Tax: "",
 			Gross: "",
-			SaleChannel: "", // Will be ignored, but keep for form state
+			SaleChannel: "",
 			Type: "0",
 		},
 	});
@@ -137,11 +138,12 @@ export default function ManualForm() {
 	const totalValue = watch("Total");
 	const taxValue = watch("Tax");
 
+	// --- AUTOCALCULATE GROSS ---
 	useEffect(() => {
 		const total = parseFloat(totalValue);
 		const tax = parseFloat(taxValue);
 		if (!isNaN(total) && !isNaN(tax)) {
-			setValue("Gross", Math.max(0, total + tax).toFixed(2)); // Total + Tax
+			setValue("Gross", Math.max(0, total + tax).toFixed(2));
 		} else {
 			setValue("Gross", "");
 		}
@@ -172,7 +174,6 @@ export default function ManualForm() {
 			const response = await fetch("/api/upload-sales", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				// --- SEND SELECTED RETAILER KEY ---
 				body: JSON.stringify({
 					receipts: [receiptForApi],
 					retailerKey: values.retailerKey,
@@ -187,15 +188,15 @@ export default function ManualForm() {
 
 			setApiResponse(result);
 			toast.success("Transaction submitted successfully!");
-			form.reset(); // Reset clears retailer too
+			form.reset();
 			form.setValue("ReceiptDate", toZonedTime(new Date(), GST_TIMEZONE));
-		} catch (error) { // Catch as unknown
-            const message = error instanceof Error ? error.message : String(error);
-            setApiError(message);
-            toast.error("Submission failed", { description: message });
-        } finally {
-            setIsLoading(false);
-        }
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			setApiError(message);
+			toast.error("Submission failed", { description: message });
+		} finally {
+			setIsLoading(false);
+		}
 	}
 
 	const isSuccess = apiResponse
@@ -203,7 +204,6 @@ export default function ManualForm() {
 		: false;
 
 	if (!isClient || !fixedShiftDay || isFetchingRetailers) {
-		// Wait for retailers too
 		return (
 			<Card>
 				<CardContent className="pt-6 flex items-center justify-center p-8">
@@ -264,14 +264,13 @@ export default function ManualForm() {
 						/>
 
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+							{/* Receipt Number */}
 							<FormField
 								control={form.control}
 								name="ReceiptNo"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											Receipt Number / Invoice
-										</FormLabel>
+										<FormLabel>Receipt Number / Invoice No.</FormLabel>
 										<FormControl>
 											<Input
 												placeholder="Enter receipt id/code"
@@ -282,12 +281,13 @@ export default function ManualForm() {
 									</FormItem>
 								)}
 							/>
+							{/* Transaction Type */}
 							<FormField
 								control={form.control}
 								name="Type"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Transaction Type</FormLabel>
+										<FormLabel>Type</FormLabel>
 										<Select
 											onValueChange={field.onChange}
 											defaultValue={field.value}
@@ -298,24 +298,21 @@ export default function ManualForm() {
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												<SelectItem value="0">
-													Receipt (Sale)
-												</SelectItem>
-												<SelectItem value="1">
-													Return
-												</SelectItem>
+												<SelectItem value="0">Sale</SelectItem>
+												<SelectItem value="1">Return</SelectItem>
 											</SelectContent>
 										</Select>
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
+							{/* Receipt Date */}
 							<FormField
 								control={form.control}
 								name="ReceiptDate"
 								render={({ field }) => (
 									<FormItem className="flex flex-col pt-2">
-										<Label>Receipt Date & Time (GST)</Label>
+										<FormLabel>Receipt Date & Time (GST)</FormLabel>
 										<FormControl>
 											<DateTimePicker
 												id={field.name}
@@ -327,8 +324,9 @@ export default function ManualForm() {
 									</FormItem>
 								)}
 							/>
+							{/* Shift Day (auto) */}
 							<FormItem>
-								<FormLabel>Shift Day & Time (GST)</FormLabel>
+								<FormLabel>Shift Day (GST)</FormLabel>
 								<FormControl>
 									<Input
 										value={fixedShiftDay.display}
@@ -338,14 +336,13 @@ export default function ManualForm() {
 								</FormControl>
 								<FormMessage />
 							</FormItem>
+							{/* Total */}
 							<FormField
 								control={form.control}
 								name="Total"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											Total before VAT / Net
-										</FormLabel>
+										<FormLabel>Total (Net)</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -358,12 +355,13 @@ export default function ManualForm() {
 									</FormItem>
 								)}
 							/>
+							{/* Tax */}
 							<FormField
 								control={form.control}
 								name="Tax"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Tax / VAT</FormLabel>
+										<FormLabel>Tax (VAT)</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
@@ -376,15 +374,13 @@ export default function ManualForm() {
 									</FormItem>
 								)}
 							/>
+							{/* Gross */}
 							<FormField
 								control={form.control}
 								name="Gross"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											Total Amount / Grand total
-											(Auto-Calculated)
-										</FormLabel>
+										<FormLabel>Gross Total</FormLabel>
 										<FormControl>
 											<Input
 												type="number"
