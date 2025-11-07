@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
+  // TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
