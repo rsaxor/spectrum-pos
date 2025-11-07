@@ -66,7 +66,7 @@ const formatCurrency = (amount: number | string | null | undefined): string => {
 };
 
 // --- Custom Sorting for MS Date Strings ---
-const msDateSortingFn: SortingFn<any> = (rowA, rowB, columnId) => {
+const msDateSortingFn: SortingFn<Receipt> = (rowA, rowB, columnId) => {
   const dateA = parseMsDateString(rowA.getValue(columnId));
   const dateB = parseMsDateString(rowB.getValue(columnId));
   if (dateA === null && dateB === null) return 0;

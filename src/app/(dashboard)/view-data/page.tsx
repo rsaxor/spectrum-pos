@@ -18,6 +18,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
+
 // Type for retailer info fetched from /api/retailers
 type RetailerInfo = { key: string; name: string };
 
@@ -32,6 +33,8 @@ export type ReceiptClientData = {
     gross: number | null;
     type: number;
     createdAt: string; // ISO String from API
+    retailerKey: string;
+    saleChannel: string;
 };
 
 export default function ViewDataPage() {
