@@ -434,7 +434,7 @@ export function SpreadsheetForm() {
                         <Textarea
                             {...field}
                             placeholder="Copy up to 50 rows from your spreadsheet (no headers) and paste them here..."
-                            className="min-h-[120px] font-mono" // Use monospaced font
+                            className="min-h-[120px] font-mono"
                         />
                     </FormControl>
                     <FormMessage />
@@ -455,12 +455,11 @@ export function SpreadsheetForm() {
             {/* Spreadsheet Area */}
             <div className="space-y-2">
                 <Label>Manual Entry Grid (Max {MAX_ROWS} rows)</Label>
-                 {/* This div NO LONGER has the onPaste handler */}
                 <div className="overflow-x-auto rounded-md border">
                     <div className="p-2 min-w-[1200px]"> {/* Force horizontal scroll */}
                         {/* Header Row */}
                         <div className="flex gap-2 p-2 border-b">
-                            <div className="w-10 flex-shrink-0" aria-hidden="true"></div> {/* Spacer for Remove button */}
+                            <div className="w-10 shrink-0" aria-hidden="true"></div> {/* Spacer for Remove button */}
                             {COLUMN_KEYS.map(key => (
                                 // Use .replace to format name like "Receipt Date"
                                 <Label key={key} className="flex-1 min-w-[150px] text-xs font-semibold">{key.replace(/([A-Z])/g, ' $1')}</Label>
@@ -475,7 +474,7 @@ export function SpreadsheetForm() {
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    className="mt-2 w-10 flex-shrink-0"
+                                    className="mt-2 w-10 shrink-0"
                                     onClick={() => remove(index)}
                                     // Disable if loading or if it's the last row
                                     disabled={isLoading || fields.length <= 1}

@@ -11,7 +11,7 @@ declare global {
 
 const db = admin.firestore();
 
-// Type for Firestore document data (matching what we save)
+// Type for Firestore document data (matching what is saved)
 type ReceiptFirestoreData = {
     receiptId: string; receiptNo: string; receiptDate: string; shiftDay: string;
     total: number; tax: number; gross: number | null; type: number; saleChannel: string;
@@ -36,10 +36,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing retailerKey query parameter." }, { status: 400 });
     }
 
-    // --- ** Use Simple Collection Name ** ---
     const collectionName = `receipts${retailerKey}`;
     const collectionPath = collectionName; // Top-level collection
-    // --- ** End Simple Collection Name ** ---
 
     console.log(`[API /get-receipts] Attempting to read collection: ${collectionPath}`);
 
@@ -58,10 +56,10 @@ export async function GET(request: NextRequest) {
         const data = doc.data() as ReceiptFirestoreData;
         return {
             ...data,
-            id: doc.id, // Add the Firestore document ID
+            id: doc.id, // Firestore document ID
             // Convert Firestore Timestamp to ISO string for client
             createdAt: data.createdAt.toDate().toISOString(),
-            // Ensure numbers are numbers (they should be, but good practice)
+            // Ensure numbers are numbers
             total: Number(data.total) || 0,
             tax: Number(data.tax) || 0,
             gross: data.gross !== null ? Number(data.gross) : null,

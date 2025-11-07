@@ -1,5 +1,3 @@
-// src/app/(dashboard)/paste-input/page.tsx
-
 import { SpreadsheetForm } from "@/components/dashboard/spreadsheet-form";
 
 export default function PasteInputPage() {
