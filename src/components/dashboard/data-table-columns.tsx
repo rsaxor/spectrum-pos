@@ -138,45 +138,45 @@ export const columns: ColumnDef<Receipt>[] = [
     enableSorting: true,
     sortingFn: msDateSortingFn,
   },
-  // Transaction Type
+  // Tax (VAT)
   {
-    accessorKey: "type",
+    accessorKey: "tax",
     header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Type <ArrowUpDown className="ml-2 h-4 w-4" />
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-center w-full justify-end" >
+        Tax (VAT) <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div>{row.getValue("type") === 1 ? "Return" : "Sale"}</div>,
+    cell: ({ row }) => ( <div className="text-center">{formatCurrency(row.getValue("tax"))}</div> ),
   },
   // Total (Net)
   {
     accessorKey: "total",
     header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-right w-full justify-end" >
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-center w-full justify-end" >
         Total (Net) <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => ( <div className="text-right">{formatCurrency(row.getValue("total"))}</div> ),
+    cell: ({ row }) => ( <div className="text-center">{formatCurrency(row.getValue("total"))}</div> ),
   },
-  // Tax (VAT)
+  // Transaction Type
   {
-    accessorKey: "tax",
+    accessorKey: "type",
     header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-right w-full justify-end" >
-        Tax (VAT) <ArrowUpDown className="ml-2 h-4 w-4" />
+      <Button variant="ghost" className="text-center" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Type <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => ( <div className="text-right">{formatCurrency(row.getValue("tax"))}</div> ),
+    cell: ({ row }) => <div className="text-center">{row.getValue("type") === 1 ? "Return" : "Sale"}</div>,
   },
   // Gross Total
   {
     accessorKey: "gross",
     header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-right w-full justify-end" >
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="text-center w-full justify-end" >
         Gross Total <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => ( <div className="text-right">{formatCurrency(row.getValue("gross"))}</div> ),
+    cell: ({ row }) => ( <div className="text-center">{formatCurrency(row.getValue("gross"))}</div> ),
   },
   // Submission Timestamp
   {
