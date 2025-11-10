@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,6 +34,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 // Import all needed icons
 import { Loader2, AlertCircle, X as XIcon, Plus, ClipboardPaste, Copy, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { useSearchParams } from "next/navigation";
 
 // --- Types ---
 type ProcessedApiRow = {
@@ -112,9 +113,12 @@ const createEmptyRow = (): RowData => ({
 
 // Define the user-friendly date format
 const USER_FRIENDLY_DATE_FORMAT = "dd MMM yyyy h:mm a";
+const getQueryParam = (param: string | null): string | undefined => { return param || undefined; }
 
 // --- Component ---
 export function SpreadsheetForm() {
+
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -139,9 +143,9 @@ export function SpreadsheetForm() {
   });
 
   // Get setValue from form
-  const { setValue, watch } = form; // Get watch as well
+  const { setValue, watch, reset } = form; // Get watch as well
 
-  // Effect to fetch retailers (Full logic included)
+  // Effect to fetch retailers
   useEffect(() => {
     let isMounted = true; // Flag to prevent state updates if component unmounts
     const fetchRetailers = async () => {
@@ -194,7 +198,25 @@ export function SpreadsheetForm() {
         console.error("Error setting default paste text:", e);
         setValue("pasteData", "Error generating date. Please paste manually.");
     }
-  }, [setValue]); // Run once when setValue is available
+  }, [searchParams, isFetchingRetailers, reset, setValue]); // Run once when setValue is available
+
+    const watchedRows = watch("rows");
+
+  // --- 4. Calculate total gross whenever rows change ---
+  const totalGross = useMemo(() => {
+    let total = 0;
+    if (watchedRows && Array.isArray(watchedRows)) {
+        total = watchedRows.reduce((acc, currentRow) => {
+            // Parse the 'Gross' value from the current row
+            const grossVal = parseFloat(currentRow.Gross || "");
+            // Add to accumulator if it's a valid number, otherwise add 0
+            return acc + (isNaN(grossVal) ? 0 : grossVal);
+        }, 0); // Start accumulator at 0
+    }
+    // Format as currency
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "AED" }).format(total);
+  }, [watchedRows]); // Re-run this calculation only when 'watchedRows' changes
+  // --- END TOTAL CALCULATION ---
 
   // --- Paste Parsing Logic ---
   const handleParsePaste = () => {
@@ -254,7 +276,7 @@ export function SpreadsheetForm() {
     }
   }; // --- End handleParsePaste ---
 
-  // --- Submit Logic (Full logic included) ---
+  // --- Submit Logic ---
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
     setApiResponse(null);
@@ -517,6 +539,7 @@ export function SpreadsheetForm() {
                  {form.formState.errors.rows?.root?.message && (
                     <p className="text-sm font-medium text-destructive">{form.formState.errors.rows.root.message}</p>
                  )}
+                 <p className="text-right text-sm"><b>Total:</b> <span>{totalGross}</span></p>
             </div>
 
             {/* Action Buttons */}
@@ -574,7 +597,7 @@ export function SpreadsheetForm() {
             <div className="mt-8">
                 <Alert variant={isSuccess ? "success" : "destructive"}>
                     {/* Use AlertCircle for both, variant handles color */}
-                    <AlertCircle className="h-4 w-4" /> 
+                    <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
                         {isSuccess ? "Submission Successful" : "Submission Failed"} (Result Code: {apiResponse.ResultCode})
                     </AlertTitle>
