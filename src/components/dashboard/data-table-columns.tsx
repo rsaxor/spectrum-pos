@@ -1,10 +1,23 @@
 "use client"
 
-import { ColumnDef, SortingFn } from "@tanstack/react-table";
-import { ArrowUpDown, Copy } from "lucide-react"; // 1. Import Copy icon
+import { ColumnDef, SortingFn, Row, Table } from "@tanstack/react-table";
+import { ArrowUpDown, Copy, Trash2, Loader2 } from "lucide-react"; // 1. Import Copy icon
 import { Button } from "@/components/ui/button";
 import { format as formatDate } from "date-fns"; // 2. Import date-fns format
 import { toast } from "sonner"; // 3. Import toast
+import * as React from "react";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // --- Helpers ---
 
@@ -75,21 +88,139 @@ const msDateSortingFn: SortingFn<Receipt> = (rowA, rowB, columnId) => {
   return dateA.getTime() - dateB.getTime();
 };
 
-// --- Types ---
 export type Receipt = {
-  id: string;
+  id: string; // Firestore document ID
   receiptId: string;
   receiptNo: string;
-  receiptDate: string;
-  shiftDay: string;
+  receiptDate: string; // MS Date String
+  shiftDay: string;    // MS Date String
   total: number;
   tax: number;
   gross: number | null;
-  type: number;
-  createdAt: string;
-  retailerKey: string;
-  saleChannel: string;
+  type: number; // 0 or 1
+  createdAt: string; // ISO String from API
 };
+
+interface ReceiptTableMeta {
+  refreshData: () => void; // Function to refetch data
+  selectedRetailerKey: string;
+}
+
+// --- NEW: DataTableRowActions Component ---
+function DataTableRowActions({ row, table }: { row: Row<Receipt>; table: Table<Receipt> }) {
+  const receipt = row.original;
+  // Get the refreshData function from the table's meta prop
+  const meta = table.options.meta as ReceiptTableMeta; 
+  // State for tracking delete operation
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  // --- Copy for Paste Area ---
+  const handleCopy = async () => {
+    const receiptDate = parseMsDateString(receipt.receiptDate);
+    const shiftDay = parseMsDateString(receipt.shiftDay);
+    const USER_FRIENDLY_DATE_FORMAT = "dd MMM yyyy h:mm a";
+    const receiptDateStr = receiptDate ? formatDate(receiptDate, USER_FRIENDLY_DATE_FORMAT) : "";
+    const shiftDayStr = shiftDay ? formatDate(shiftDay, USER_FRIENDLY_DATE_FORMAT) : "";
+    
+    // [ReceiptDate, ReceiptNo, ShiftDay, Tax, Total, Type, Gross, SaleChannel]
+    const rowData = [
+      receiptDateStr,
+      receipt.receiptNo,
+      shiftDayStr,
+      String(receipt.tax),
+      String(receipt.total),
+      String(receipt.type),
+      String(receipt.gross ?? ""),
+      "Store-sales"
+    ];
+    const tsvString = rowData.join("\t");
+    try {
+      await navigator.clipboard.writeText(tsvString);
+      toast.success("Row copied to clipboard!", { description: "You can now paste this into the 'Paste from Excel' box."});
+    } catch (err) { toast.error("Failed to copy data."); }
+  };
+
+  const queryParams = new URLSearchParams();
+
+  // --- Delete Function ---
+  const handleDelete = async () => {
+    const retailerKey = meta.selectedRetailerKey;
+    setIsDeleting(true);
+    try {
+      const response = await fetch("/api/delete-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          retailerKey: retailerKey,
+          docId: receipt.id, // 'id' is the Firestore document ID
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete from server.");
+      }
+      
+      toast.success(`Receipt ${receipt.receiptNo} deleted successfully.`);
+      // Call the refreshData function passed down from the page
+      if (meta.refreshData) {
+        meta.refreshData(); 
+      } else {
+        console.warn("meta.refreshData() is not defined. Table will not auto-refresh.");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred.";
+      console.error("Delete failed:", error);
+      toast.error("Delete failed", { description: message });
+    } finally {
+      setIsDeleting(false);
+      // Dialog will close itself on action
+    }
+  };
+
+  // --- Render the buttons ---
+  return (
+    <AlertDialog>
+      <div className="flex gap-0">
+          {/* Copy Button */}
+          <Button variant="ghost" size="icon" title="Copy for Pasting" onClick={handleCopy} disabled={isDeleting}>
+            <Copy className="h-4 w-4" />
+            <span className="sr-only">Copy Row</span>
+          </Button>
+          {/* Delete Button (Triggers Dialog) */}
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" title="Delete Receipt" className="text-destructive hover:text-destructive" disabled={isDeleting}>
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Delete</span>
+            </Button>
+          </AlertDialogTrigger>
+      </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the receipt
+            <b className="mx-1">({receipt.receiptNo})</b>
+            from the database.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+// --- END NEW COMPONENT ---
 
 // --- Columns ---
 export const columns: ColumnDef<Receipt>[] = [
@@ -194,53 +325,9 @@ export const columns: ColumnDef<Receipt>[] = [
   {
     id: "actions",
     header: "Action",
-    cell: ({ row }) => {
-      const receipt = row.original; // This is the full Receipt object
-
-      // This is the user-friendly format the spreadsheet form's parser expects
-      const USER_FRIENDLY_DATE_FORMAT = "dd MMM yyyy h:mm a";
-
-      const handleCopy = async () => {
-        // 1. Format dates back to the user-friendly string format
-        const receiptDate = parseMsDateString(receipt.receiptDate);
-        const shiftDay = parseMsDateString(receipt.shiftDay);
-        
-        const receiptDateStr = receiptDate ? formatDate(receiptDate, USER_FRIENDLY_DATE_FORMAT) : "";
-        const shiftDayStr = shiftDay ? formatDate(shiftDay, USER_FRIENDLY_DATE_FORMAT) : "";
-
-        // 2. Define the 8 columns IN THE CORRECT ORDER for the spreadsheet form
-        // [ReceiptDate, ReceiptNo, ShiftDay, Tax, Total, Type, Gross, SaleChannel]
-        const rowData = [
-          receiptDateStr,                   // ReceiptDate
-          receipt.receiptNo,                // ReceiptNo
-          shiftDayStr,                      // ShiftDay
-          String(receipt.tax),              // Tax
-          String(receipt.total),            // Total
-          String(receipt.type),             // Type
-          String(receipt.gross ?? ""),      // Gross (send empty string for null)
-          receipt.saleChannel ?? "Store-sales" // SaleChannel
-        ];
-
-        // 3. Create Tab-Separated (TSV) string
-        const tsvString = rowData.join("\t");
-
-        // 4. Copy to clipboard
-        try {
-          await navigator.clipboard.writeText(tsvString);
-          toast.success("Row copied to clipboard!", { description: "You can now paste this into the 'Paste from Excel' box."});
-        } catch (err) {
-          console.error("Copy failed:", err);
-          toast.error("Failed to copy data.");
-        }
-      };
-
-      return (
-        <Button variant="ghost" size="icon" title="Copy for Pasting" onClick={handleCopy}>
-          <Copy className="h-4 w-4" />
-          <span className="sr-only">Copy Row</span>
-        </Button>
-      );
-    },
+    cell: ({ row, table }) => (
+      <DataTableRowActions row={row} table={table} />
+    ),
     enableSorting: false,
     enableHiding: false,
   },

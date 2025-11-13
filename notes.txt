@@ -169,3 +169,12 @@ nvidia geforce gtx 950m 4gb graphics card
 254 gb storage
 64 bit OS
 Windows 10 lOT Enterprise LTSC version 21H2 OS build 19044.6456
+
+
+
+11 Nov 2025 8:53 PM	00160798	11 Nov 2025 9:00 AM	390	7800	0	8190	Store-sales
+11 Nov 2025 8:21 PM	00160799	11 Nov 2025 9:00 AM	18	360	0	378	Store-sales
+11 Nov 2025 4:59 PM	00160797	11 Nov 2025 9:00 AM	12.5	250	0	262.5	Store-sales
+11 Nov 2025 6:53 PM	00160795	11 Nov 2025 9:00 AM	175	3500	0	3675	Store-sales
+11 Nov 2025 7:14 PM	00160794	11 Nov 2025 9:00 AM	200	4000	0	4200	Store-sales
+11 Nov 2025 1:21 PM	00160767	11 Nov 2025 9:00 AM	72	1440	0	1512	Store-sales

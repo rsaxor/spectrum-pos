@@ -23,18 +23,18 @@ import { Button } from '@/components/ui/button';
 type RetailerInfo = { key: string; name: string };
 
 export type ReceiptClientData = {
-    id: string;
-    receiptId: string;
-    receiptNo: string;
-    receiptDate: string; // MS Date String
-    shiftDay: string;    // MS Date String
-    total: number;
-    tax: number;
-    gross: number | null;
-    type: number;
-    createdAt: string; // ISO String from API
-    retailerKey: string;
-    saleChannel: string;
+  id: string;
+  receiptId: string;
+  receiptNo: string;
+  receiptDate: string; // MS Date String
+  shiftDay: string;    // MS Date String
+  total: number;
+  tax: number;
+  gross: number | null;
+  type: number;
+  createdAt: string; // ISO String from API
+  retailerKey: string;
+  saleChannel: string;
 };
 
 export default function ViewDataPage() {
@@ -214,7 +214,16 @@ export default function ViewDataPage() {
       ) : !selectedRetailerKey ? ( // Show message if no retailer selected (after initial load)
          <Alert> <AlertTitle>Select a Retailer</AlertTitle> <AlertDescription>Please select a retailer from the dropdown above to view their data.</AlertDescription> </Alert>
       ) : ( // Show data table
-        <DataTable columns={columns} data={data} />
+        <DataTable
+          columns={columns}
+          data={data}
+          meta={{
+            // Pass the refresh function
+            refreshData: () => fetchDataForRetailer(selectedRetailerKey),
+            // Pass the currently selected retailer key
+            selectedRetailerKey: selectedRetailerKey 
+          }}
+        />
       )}
     </div>
   )

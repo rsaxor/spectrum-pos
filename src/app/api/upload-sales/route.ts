@@ -100,10 +100,10 @@ export async function POST(request: NextRequest) {
             ReceiptDate: restOfReceipt.ReceiptDate, // Known to be string
             ReceiptNo: restOfReceipt.ReceiptNo,     // Known to be string
             // Safely convert potential string/number to number
-            Tax: restOfReceipt.Tax ? parseFloat(String(restOfReceipt.Tax)) : 0,
-            Total: parseFloat(String(restOfReceipt.Total)), // Ensure it's parsed from string/number
+            Tax: restOfReceipt.Tax ? Number(restOfReceipt.Tax) : 0,
+            Total: Number(restOfReceipt.Total), // Ensure it's parsed from string/number
             Type: parseInt(String(restOfReceipt.Type), 10), // Ensure it's parsed from string/number
-            Gross: restOfReceipt.Gross ? parseFloat(String(restOfReceipt.Gross)) : null,
+            Gross: restOfReceipt.Gross ? Number(restOfReceipt.Gross) : null,
             SaleChannel: "Store-sales",
         };
         if (!apiDataByShiftDayString[clientShiftDayString]) apiDataByShiftDayString[clientShiftDayString] = [];

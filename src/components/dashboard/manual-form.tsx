@@ -30,6 +30,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { DateTimePicker } from "../ui/date-time-picker";
 
+const parseSanitizedFloat = (value: string | undefined | null): number => {
+    if (!value) return NaN;
+    return parseFloat(value.replace(/,/g, '')); // Remove commas
+};
+
 type ApiResponse = {
 	ResultCode: string;
 	ReturnMessage: string | null;
@@ -133,19 +138,19 @@ export default function ManualForm() {
 		},
 	});
 
-	const { watch, setValue } = form;
+	const { watch, setValue, reset } = form;
 	const totalValue = watch("Total");
 	const taxValue = watch("Tax");
 
 	// --- AUTOCALCULATE GROSS ---
 	useEffect(() => {
-		const total = parseFloat(totalValue);
-		const tax = parseFloat(taxValue);
+		const total = parseSanitizedFloat(totalValue);
+		const tax = parseSanitizedFloat(taxValue);
 		if (!isNaN(total) && !isNaN(tax)) {
-			setValue("Gross", Math.max(0, total + tax).toFixed(2));
-		} else {
-			setValue("Gross", "");
-		}
+            setValue("Gross", Math.max(0, total + tax).toFixed(2));
+        } else {
+            setValue("Gross", "");
+        }
 	}, [totalValue, taxValue, setValue]);
 
 	async function onSubmit(values: ManualFormValues) {
@@ -157,27 +162,28 @@ export default function ManualForm() {
 		setApiResponse(null);
 		setApiError(null);
 		try {
+			const total = parseSanitizedFloat(values.Total);
+            const tax = parseSanitizedFloat(values.Tax);
+            const gross = parseSanitizedFloat(values.Gross);
+
 			const receiptForApi = {
 				ReceiptNo: values.ReceiptNo,
 				Type: values.Type,
 				ReceiptDate: `/Date(${values.ReceiptDate.getTime()})/`,
 				ShiftDay: `/Date(${fixedShiftDay.date.getTime()})/`,
-				Total: parseFloat(values.Total),
-				Tax: parseFloat(values.Tax),
-				Gross:
-					values.Gross && values.Gross !== ""
-						? parseFloat(values.Gross)
-						: null,
+				Total: total,
+				Tax: tax,
+				Gross: !isNaN(gross) ? gross : null,
 			};
 
 			const response = await fetch("/api/upload-sales", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					receipts: [receiptForApi],
-					retailerKey: values.retailerKey,
-				}),
-			});
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    receipts: [receiptForApi],
+                    retailerKey: values.retailerKey,
+                }),
+            });
 
 			const result = await response.json();
 			if (!response.ok)

@@ -36,6 +36,11 @@ import { Loader2, AlertCircle, X as XIcon, Plus, ClipboardPaste, Copy, Trash2 } 
 import { Label } from "@/components/ui/label";
 import { useSearchParams } from "next/navigation";
 
+const parseSanitizedFloat = (value: string | undefined | null): number => {
+    if (!value) return NaN;
+    return parseFloat(value.replace(/,/g, '')); // Remove commas
+};
+
 // --- Types ---
 type ProcessedApiRow = {
     ReceiptNo: string;
@@ -208,7 +213,7 @@ export function SpreadsheetForm() {
     if (watchedRows && Array.isArray(watchedRows)) {
         total = watchedRows.reduce((acc, currentRow) => {
             // Parse the 'Gross' value from the current row
-            const grossVal = parseFloat(currentRow.Gross || "");
+            const grossVal = parseSanitizedFloat(currentRow.Gross || "");
             // Add to accumulator if it's a valid number, otherwise add 0
             return acc + (isNaN(grossVal) ? 0 : grossVal);
         }, 0); // Start accumulator at 0
@@ -300,6 +305,10 @@ export function SpreadsheetForm() {
             if(shiftMatch && shiftMatch[1]) parsedShiftDay = new Date(parseInt(shiftMatch[1]));
             else parsedShiftDay = dateParse(row.ShiftDay, USER_FRIENDLY_DATE_FORMAT, new Date());
 
+            const total = parseSanitizedFloat(row.Total);
+            const tax = parseSanitizedFloat(row.Tax);
+            const gross = parseSanitizedFloat(row.Gross);
+
             // Validate parsed dates
             if (isNaN(parsedReceiptDate.getTime()) || isNaN(parsedShiftDay.getTime())) {
                 throw new Error(`Invalid date on row ${index + 1}. Found "${row.ReceiptDate}" or "${row.ShiftDay}". Please use format like "20 Oct 2025 02:30 PM".`);
@@ -311,7 +320,7 @@ export function SpreadsheetForm() {
                 Tax: row.Tax,
                 Total: row.Total,
                 Type: row.Type,
-                Gross: row.Gross, // Pass string | undefined
+                Gross: !isNaN(gross) ? String(gross) : undefined, // Convert to string or undefined
                 SaleChannel: row.SaleChannel || "Store-sales", // Default if empty
                 // Convert dates to required MS format
                 ReceiptDate: `/Date(${parsedReceiptDate.getTime()})/`,

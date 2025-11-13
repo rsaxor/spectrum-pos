@@ -13,9 +13,20 @@ const db = admin.firestore();
 
 // Type for Firestore document data (matching what is saved)
 type ReceiptFirestoreData = {
-    receiptId: string; receiptNo: string; receiptDate: string; shiftDay: string;
-    total: number; tax: number; gross: number | null; type: number; saleChannel: string;
-    retailerKey: string; retailerName: string; mall: string; brand: string; unit: string;
+    receiptId: string;
+    receiptNo: string;
+    receiptDate: string;
+    shiftDay: string;
+    total: number;
+    tax: number;
+    gross: number | null;
+    type: number;
+    saleChannel: string;
+    retailerKey: string;
+    retailerName: string;
+    mall: string;
+    brand: string;
+    unit: string;
     createdAt: Timestamp; // Expect Timestamp from Admin SDK reads
 };
 

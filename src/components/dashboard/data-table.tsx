@@ -13,6 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
   FilterFn,
+  TableMeta
 } from "@tanstack/react-table"
 import { rankItem } from "@tanstack/match-sorter-utils"
 
@@ -72,6 +73,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   isLoading?: boolean // Optional loading state for async data
   error?: string // Optional error message
+  meta?: TableMeta<TData>
 }
 
 // --- DataTable Component ---
@@ -80,6 +82,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
   data,
   isLoading = false,
   error,
+  meta
 }: DataTableProps<TData, TValue>) {
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -125,6 +128,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
   const table = useReactTable<TData>({
     data,
     columns,
+    meta: meta,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -264,37 +268,25 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-
-          {/* Loading State */}
-          {isLoading ? (
-            <TableBody>
+          <TableBody>
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Loading...
+                  No results found.
                 </TableCell>
               </TableRow>
-            </TableBody>
-          ) : (
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          )}
+            )}
+          </TableBody>
         </Table>
       </div>
 
@@ -309,7 +301,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage() || isLoading}
+            disabled={!table.getCanPreviousPage()}
           >
             Previous
           </Button>
@@ -317,7 +309,7 @@ export function DataTable<TData extends { receiptDate?: string }, TValue>({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage() || isLoading}
+            disabled={!table.getCanNextPage()}
           >
             Next
           </Button>
